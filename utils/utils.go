@@ -26,6 +26,10 @@ const (
 	TOKEN_ILLEGAL  TokenType = "ILLEGAL"
 	TOKEN_TRUE     TokenType = "TRUE"
 	TOKEN_FALSE    TokenType = "FALSE"
+	TOKEN_PLUS     TokenType = "PLUS"
+	TOKEN_MINUS    TokenType = "MINUS"
+	TOKEN_MULT     TokenType = "MULTIPLY"
+	TOKEN_DIV      TokenType = "DIVIDE"
 )
 
 var Keywords = map[string]TokenType{
@@ -46,6 +50,10 @@ var SingleCharTokens = map[byte]TokenType{
 	'}': TOKEN_RBRACE,
 	'(': TOKEN_RPAREN,
 	')': TOKEN_LPAREN,
+    '+': TOKEN_PLUS,
+    '-': TOKEN_MINUS,
+    '*': TOKEN_MULT,
+    '/': TOKEN_DIV,
 }
 
 type Token struct {
@@ -86,7 +94,13 @@ func (ts *TokenStack) Pop() (Token, error) {
 	return res, nil
 }
 
-/// WARN Use this for testing or debugging
+func (ts *TokenStack) Len() int {
+	ts.lock.Lock()
+	defer ts.lock.Unlock()
+	return len(ts.tokens)
+}
+
+// WARN Use this for testing or debugging
 func (ts *TokenStack) Tokens() []Token {
 	ts.lock.Lock()
 	defer ts.lock.Unlock()
