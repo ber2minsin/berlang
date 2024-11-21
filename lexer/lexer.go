@@ -1,59 +1,12 @@
 package lexer
 
 import (
+	"berlang/utils"
 	"bufio"
 	"fmt"
 	"io"
 	"strings"
 )
-
-type TokenType string
-
-const (
-	TOKEN_LET      TokenType = "LET"
-	TOKEN_FUNCTION TokenType = "FUNCTION"
-	TOKEN_IDENT    TokenType = "IDENT"
-	TOKEN_COLON    TokenType = "COLON"
-	TOKEN_TYPE     TokenType = "TYPE"
-	TOKEN_ASSIGN   TokenType = "ASSIGN"
-	TOKEN_NUMBER   TokenType = "NUMBER"
-	TOKEN_SEMI     TokenType = "SEMI"
-	TOKEN_LBRACE   TokenType = "LBRACE"
-	TOKEN_RBRACE   TokenType = "RBRACE"
-	TOKEN_RPAREN   TokenType = "TOKEN_RPAREN"
-	TOKEN_LPAREN   TokenType = "TOKEN_LPAREN"
-	TOKEN_EOF      TokenType = "EOF"
-	TOKEN_ILLEGAL  TokenType = "ILLEGAL"
-	TOKEN_TRUE     TokenType = "TRUE"
-	TOKEN_FALSE    TokenType = "FALSE"
-)
-
-var keywords = map[string]TokenType{
-	"let":    TOKEN_LET,
-	"def":    TOKEN_FUNCTION,
-	"int":    TOKEN_TYPE,
-	"string": TOKEN_TYPE,
-	"bool":   TOKEN_TYPE,
-	"true":   TOKEN_TRUE,
-	"false":  TOKEN_FALSE,
-}
-
-var singleCharTokens = map[byte]TokenType{
-	':': TOKEN_COLON,
-	'=': TOKEN_ASSIGN,
-	';': TOKEN_SEMI,
-	'{': TOKEN_LBRACE,
-	'}': TOKEN_RBRACE,
-	'(': TOKEN_RPAREN,
-	')': TOKEN_LPAREN,
-}
-
-type Token struct {
-	Type    TokenType
-	Literal string
-	Line    int
-	Column  int
-}
 
 type Lexer struct {
 	reader *bufio.Reader
@@ -96,13 +49,13 @@ func (l *Lexer) unreadChar() error {
 	return l.reader.UnreadByte()
 }
 
-func (l *Lexer) Lex() ([]Token, error) {
-	var tokens []Token
+func (l *Lexer) Lex() (*utils.TokenStack, error) {
+	var tokens = utils.NewTokenStack()
 
 	// Prime the first character
 	err := l.readChar()
 	if err != nil && err != io.EOF {
-		return nil, err
+		return utils.NewTokenStack(), err
 	}
 
 	for l.ch != 0 {
@@ -110,12 +63,12 @@ func (l *Lexer) Lex() ([]Token, error) {
 
 		tok, err := l.nextToken()
 		if err != io.EOF && err != nil {
-			return nil, err
+			return utils.NewTokenStack(), err
 		}
 
-		tokens = append(tokens, tok)
+		tokens.Push(tok)
 
-		if tok.Type == TOKEN_EOF {
+		if tok.Type == utils.TOKEN_EOF {
 			break
 		}
 	}
@@ -131,18 +84,21 @@ func (l *Lexer) skipWhitespace() {
 	}
 }
 
-func (l *Lexer) nextToken() (Token, error) {
-	var tok Token
+func (l *Lexer) nextToken() (utils.Token, error) {
+	var tok utils.Token
 	tok.Line = l.line
 	tok.Column = l.column
 	fmt.Printf("Current character: '%c' (ASCII: %d)\n", l.ch, l.ch)
 
 	if l.ch == 0 {
-		tok.Type = TOKEN_EOF
+		tok.Type = utils.TOKEN_EOF
 		return tok, io.EOF
 	}
 
-	if tokenType, ok := singleCharTokens[l.ch]; ok {
+    // TODO add k that would mean look k characters ahead to see if anything more matches
+    // This needs to be done, at least k=1 because we need to, for example discriminate > and >=
+
+	if tokenType, ok := utils.SingleCharTokens[l.ch]; ok {
 		tok.Type = tokenType
 		tok.Literal = string(l.ch)
 
@@ -158,15 +114,15 @@ func (l *Lexer) nextToken() (Token, error) {
 	case isDigit(l.ch):
 		return l.lexNumber()
 	default:
-		tok.Type = TOKEN_ILLEGAL
+		tok.Type = utils.TOKEN_ILLEGAL
 		tok.Literal = string(l.ch)
 
 		return tok, nil
 	}
 }
 
-func (l *Lexer) lexIdentifier() (Token, error) {
-	var tok Token
+func (l *Lexer) lexIdentifier() (utils.Token, error) {
+	var tok utils.Token
 	tok.Line = l.line
 	tok.Column = l.column
 
@@ -184,8 +140,8 @@ func (l *Lexer) lexIdentifier() (Token, error) {
 	return tok, nil
 }
 
-func (l *Lexer) lexNumber() (Token, error) {
-	var tok Token
+func (l *Lexer) lexNumber() (utils.Token, error) {
+	var tok utils.Token
 	tok.Line = l.line
 	tok.Column = l.column
 
@@ -198,7 +154,7 @@ func (l *Lexer) lexNumber() (Token, error) {
 	}
 
 	tok.Literal = sb.String()
-	tok.Type = TOKEN_NUMBER
+	tok.Type = utils.TOKEN_NUMBER
 
 	return tok, nil
 }
@@ -211,9 +167,9 @@ func isDigit(ch byte) bool {
 	return '0' <= ch && ch <= '9'
 }
 
-func lookupIdentifier(ident string) TokenType {
-	if tok, ok := keywords[ident]; ok {
+func lookupIdentifier(ident string) utils.TokenType {
+	if tok, ok := utils.Keywords[ident]; ok {
 		return tok
 	}
-	return TOKEN_IDENT
+	return utils.TOKEN_IDENT
 }

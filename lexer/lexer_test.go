@@ -22,7 +22,7 @@ func TestLex(t *testing.T) {
 	}
 
 	// Print the tokens
-	for _, token := range tokens {
+	for _, token := range tokens.Tokens(){
 		t.Logf("%+v", token)
 	}
 }
