@@ -10,26 +10,32 @@ import (
 type TokenType string
 
 const (
-	TOKEN_LET     TokenType = "LET"
-	TOKEN_IDENT   TokenType = "IDENT"
-	TOKEN_COLON   TokenType = "COLON"
-	TOKEN_TYPE    TokenType = "TYPE"
-	TOKEN_ASSIGN  TokenType = "ASSIGN"
-	TOKEN_NUMBER  TokenType = "NUMBER"
-	TOKEN_SEMI    TokenType = "SEMI"
-	TOKEN_LBRACE  TokenType = "LBRACE"
-	TOKEN_RBRACE  TokenType = "RBRACE"
-	TOKEN_RPAREN  TokenType = "TOKEN_RPAREN"
-	TOKEN_LPAREN  TokenType = "TOKEN_LPAREN"
-	TOKEN_EOF     TokenType = "EOF"
-	TOKEN_ILLEGAL TokenType = "ILLEGAL"
+	TOKEN_LET      TokenType = "LET"
+	TOKEN_FUNCTION TokenType = "FUNCTION"
+	TOKEN_IDENT    TokenType = "IDENT"
+	TOKEN_COLON    TokenType = "COLON"
+	TOKEN_TYPE     TokenType = "TYPE"
+	TOKEN_ASSIGN   TokenType = "ASSIGN"
+	TOKEN_NUMBER   TokenType = "NUMBER"
+	TOKEN_SEMI     TokenType = "SEMI"
+	TOKEN_LBRACE   TokenType = "LBRACE"
+	TOKEN_RBRACE   TokenType = "RBRACE"
+	TOKEN_RPAREN   TokenType = "TOKEN_RPAREN"
+	TOKEN_LPAREN   TokenType = "TOKEN_LPAREN"
+	TOKEN_EOF      TokenType = "EOF"
+	TOKEN_ILLEGAL  TokenType = "ILLEGAL"
+	TOKEN_TRUE     TokenType = "TRUE"
+	TOKEN_FALSE    TokenType = "FALSE"
 )
 
 var keywords = map[string]TokenType{
 	"let":    TOKEN_LET,
+	"def":    TOKEN_FUNCTION,
 	"int":    TOKEN_TYPE,
 	"string": TOKEN_TYPE,
 	"bool":   TOKEN_TYPE,
+	"true":   TOKEN_TRUE,
+	"false":  TOKEN_FALSE,
 }
 
 var singleCharTokens = map[byte]TokenType{
