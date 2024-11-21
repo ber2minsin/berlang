@@ -1,1 +1,6 @@
 let a: int = 0;
+let test_var: int = 120;
+
+if (test) {
+    let b: int = 0;
+}
