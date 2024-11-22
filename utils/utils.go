@@ -48,8 +48,8 @@ var SingleCharTokens = map[byte]TokenType{
 	';': TOKEN_SEMI,
 	'{': TOKEN_LBRACE,
 	'}': TOKEN_RBRACE,
-	'(': TOKEN_RPAREN,
-	')': TOKEN_LPAREN,
+	')': TOKEN_RPAREN,
+	'(': TOKEN_LPAREN,
     '+': TOKEN_PLUS,
     '-': TOKEN_MINUS,
     '*': TOKEN_MULT,
@@ -63,23 +63,23 @@ type Token struct {
 	Column  int
 }
 
-type TokenStack struct {
+type TokenQueue struct {
 	lock   sync.Mutex
 	tokens []Token
 }
 
-func NewTokenStack() *TokenStack {
-	return &TokenStack{}
+func NewTokenQueue() *TokenQueue {
+	return &TokenQueue{}
 }
 
-func (ts *TokenStack) Push(t Token) {
+func (ts *TokenQueue) Push(t Token) {
 	ts.lock.Lock()
 	defer ts.lock.Unlock()
 
 	ts.tokens = append(ts.tokens, t)
 }
 
-func (ts *TokenStack) Pop() (Token, error) {
+func (ts *TokenQueue) Pop() (Token, error) {
 	ts.lock.Lock()
 	defer ts.lock.Unlock()
 
@@ -88,20 +88,20 @@ func (ts *TokenStack) Pop() (Token, error) {
 		return Token{}, empty_stack
 	}
 
-	res := ts.tokens[l-1]
-	ts.tokens = ts.tokens[:l-1]
+	res := ts.tokens[0]
+	ts.tokens = ts.tokens[1:l]
 
 	return res, nil
 }
 
-func (ts *TokenStack) Len() int {
+func (ts *TokenQueue) Len() int {
 	ts.lock.Lock()
 	defer ts.lock.Unlock()
 	return len(ts.tokens)
 }
 
 // WARN Use this for testing or debugging
-func (ts *TokenStack) Tokens() []Token {
+func (ts *TokenQueue) Tokens() []Token {
 	ts.lock.Lock()
 	defer ts.lock.Unlock()
 

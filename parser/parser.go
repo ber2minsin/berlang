@@ -22,11 +22,11 @@ type ParseTree struct {
 }
 
 type Parser struct {
-	tokenStack *utils.TokenStack
+	tokenStack *utils.TokenQueue
 	curToken   utils.Token
 }
 
-func NewParser(ts *utils.TokenStack) *Parser {
+func NewParser(ts *utils.TokenQueue) *Parser {
 	token, err := ts.Pop()
 	if err != nil {
 		panic(fmt.Sprintf("Failed to initialize parser: %v", err))
@@ -56,13 +56,12 @@ func (p *Parser) Parse(precedence int8) (interface{}, error) {
 		return nil, err
 	}
 
-	// Advance to the next token after NUD parsing
-	if err := p.nextToken(); err != nil {
-		// If no more tokens, return the current lhs
+	if err := p.nextToken(); err != nil ||
+		p.currentToken().Type == utils.TOKEN_EOF ||
+		p.currentToken().Type == utils.TOKEN_SEMI {
 		return lhs, nil
 	}
 
-	// Continue parsing while there are tokens and precedence allows
 	for p.tokenStack.Len() > 0 {
 		currentToken = p.currentToken()
 		currentTokenRule = rules[currentToken.Type]
@@ -71,7 +70,6 @@ func (p *Parser) Parse(precedence int8) (interface{}, error) {
 			break
 		}
 
-		// Move to the next token before LED parsing
 		if err := p.nextToken(); err != nil {
 			break
 		}
@@ -160,18 +158,15 @@ func init() {
 		utils.TOKEN_LPAREN: {
 			LBP: 0,
 			NUD: func(p *Parser, _ interface{}) (interface{}, error) {
-				// Consume the left parenthesis and parse the expression inside
-				p.nextToken()        // Consume '('
-				expr, err := p.Parse(0) // Parse with low precedence to support expressions inside the parentheses
+				p.nextToken()
+				expr, err := p.Parse(0)
 				if err != nil {
 					return nil, err
 				}
 
-				// Expect a closing parenthesis
 				if p.currentToken().Type != utils.TOKEN_RPAREN {
 					return nil, fmt.Errorf("expected ')', got %v", p.currentToken().Type)
 				}
-				p.nextToken() // Consume ')'
 
 				return expr, nil
 			},

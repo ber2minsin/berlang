@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 func TestParse(t *testing.T) {
-    tokenStack := utils.NewTokenStack()
+    tokenStack := utils.NewTokenQueue()
     // Push tokens in reverse order
     tokenStack.Push(utils.Token{Type: utils.TOKEN_NUMBER, Literal: "2"})
     tokenStack.Push(utils.Token{Type: utils.TOKEN_MULT, Literal: "*"})

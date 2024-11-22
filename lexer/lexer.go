@@ -49,13 +49,13 @@ func (l *Lexer) unreadChar() error {
 	return l.reader.UnreadByte()
 }
 
-func (l *Lexer) Lex() (*utils.TokenStack, error) {
-	var tokens = utils.NewTokenStack()
+func (l *Lexer) Lex() (*utils.TokenQueue, error) {
+	var tokens = utils.NewTokenQueue()
 
 	// Prime the first character
 	err := l.readChar()
 	if err != nil && err != io.EOF {
-		return utils.NewTokenStack(), err
+		return utils.NewTokenQueue(), err
 	}
 
 	for l.ch != 0 {
@@ -63,7 +63,7 @@ func (l *Lexer) Lex() (*utils.TokenStack, error) {
 
 		tok, err := l.nextToken()
 		if err != io.EOF && err != nil {
-			return utils.NewTokenStack(), err
+			return utils.NewTokenQueue(), err
 		}
 
 		tokens.Push(tok)
