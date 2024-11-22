@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -56,6 +57,15 @@ var SingleCharTokens = map[byte]TokenType{
     '/': TOKEN_DIV,
 }
 
+func GetKeyByValue(m map[string]TokenType, value TokenType) (string, bool) {
+    for k, v := range m {
+        if v == value {
+            return k, true
+        }
+    }
+    return "", false
+}
+
 type Token struct {
 	Type    TokenType
 	Literal string
@@ -108,4 +118,8 @@ func (ts *TokenQueue) Tokens() []Token {
 	copiedTokens := make([]Token, len(ts.tokens))
 	copy(copiedTokens, ts.tokens)
 	return copiedTokens
+}
+
+func NewParseError(expected string, found string, line, col float64) error {
+    return fmt.Errorf("Expected %v, found: %v at line: %f, col: %f", expected, found, line, col)
 }

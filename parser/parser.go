@@ -2,10 +2,12 @@ package parser
 
 import (
 	"berlang/utils"
+	"errors"
 	"fmt"
 )
 
 var rules map[utils.TokenType]ParseRule
+var UnexpectedTokenError = errors.New("Unexpected token")
 
 type ParseFunc func(p *Parser, left interface{}) (interface{}, error)
 
@@ -47,7 +49,74 @@ func (p *Parser) nextToken() error {
 	return nil
 }
 
-func (p *Parser) Parse(precedence int8) (interface{}, error) {
+func (p *Parser) Parse() (interface{}, error) {
+
+    switch p.currentToken().Type {
+
+    case utils.TOKEN_LET:
+        return p.parseVariableDeclaration()
+	case utils.TOKEN_FUNCTION:
+	case utils.TOKEN_IDENT:
+	default:
+		panic("unexpected utils.TokenType")
+	}
+    return nil, UnexpectedTokenError
+
+}
+
+func (p *Parser) expectToken(expectedType utils.TokenType) error {
+    if err := p.nextToken(); err != nil {
+        return err
+    }
+
+    if p.currentToken().Type != expectedType {
+        return utils.NewParseError(
+            string(expectedType),
+            string(p.currentToken().Type),
+            float64(p.currentToken().Line),
+            float64(p.currentToken().Column),
+        )
+    }
+
+    return nil
+}
+
+func (p *Parser) parseVariableDeclaration() (interface{}, error) {
+
+    var varDeclaration map[string]interface{} = make(map[string]interface{})
+
+    if err := p.expectToken(utils.TOKEN_IDENT); err != nil {
+        return nil, err
+    }
+    varDeclaration["name"] = string(p.currentToken().Literal)
+
+    if err := p.expectToken(utils.TOKEN_COLON); err != nil {
+        return nil, err
+    }
+
+    if err := p.expectToken(utils.TOKEN_TYPE); err != nil {
+        return nil, err
+    }
+
+	if _, ok := utils.Keywords[p.currentToken().Literal]; ok {
+        varDeclaration["type"] = p.currentToken().Literal
+	}
+
+    if err := p.expectToken(utils.TOKEN_ASSIGN); err != nil {
+        return nil, err
+    }
+
+    p.nextToken()
+
+    right, err := p.parseStatement(0)
+    if err != nil {
+        return nil, UnexpectedTokenError
+    }
+    varDeclaration["value"] = right
+    return varDeclaration, nil
+}
+
+func (p *Parser) parseStatement(precedence int8) (interface{}, error) {
 	currentToken := p.currentToken()
 	currentTokenRule := rules[currentToken.Type]
 
@@ -95,14 +164,14 @@ func init() {
 		utils.TOKEN_PLUS: {
 			LBP: 10,
 			NUD: func(p *Parser, _ interface{}) (interface{}, error) {
-				right, err := p.Parse(100) // High precedence for unary operations
+				right, err := p.parseStatement(100) // High precedence for unary operations
 				if err != nil {
 					return nil, err
 				}
 				return map[string]interface{}{"op": "+", "right": right}, nil
 			},
 			LED: func(p *Parser, left interface{}) (interface{}, error) {
-				right, err := p.Parse(10) // Same precedence
+				right, err := p.parseStatement(10) // Same precedence
 				if err != nil {
 					return nil, err
 				}
@@ -112,14 +181,14 @@ func init() {
 		utils.TOKEN_MINUS: {
 			LBP: 10,
 			NUD: func(p *Parser, _ interface{}) (interface{}, error) {
-				right, err := p.Parse(100) // High precedence for unary minus
+				right, err := p.parseStatement(100) // High precedence for unary minus
 				if err != nil {
 					return nil, err
 				}
 				return map[string]interface{}{"op": "-", "right": right}, nil
 			},
 			LED: func(p *Parser, left interface{}) (interface{}, error) {
-				right, err := p.Parse(10) // Same precedence
+				right, err := p.parseStatement(10) // Same precedence
 				if err != nil {
 					return nil, err
 				}
@@ -130,7 +199,7 @@ func init() {
 			LBP: 20,
 			NUD: nil, // Multiplication not valid as prefix
 			LED: func(p *Parser, left interface{}) (interface{}, error) {
-				right, err := p.Parse(20) // Same precedence
+				right, err := p.parseStatement(20) // Same precedence
 				if err != nil {
 					return nil, err
 				}
@@ -141,7 +210,7 @@ func init() {
 			LBP: 20,
 			NUD: nil, // Division not valid as prefix
 			LED: func(p *Parser, left interface{}) (interface{}, error) {
-				right, err := p.Parse(20) // Same precedence
+				right, err := p.parseStatement(20) // Same precedence
 				if err != nil {
 					return nil, err
 				}
@@ -159,7 +228,7 @@ func init() {
 			LBP: 0,
 			NUD: func(p *Parser, _ interface{}) (interface{}, error) {
 				p.nextToken()
-				expr, err := p.Parse(0)
+				expr, err := p.parseStatement(0)
 				if err != nil {
 					return nil, err
 				}

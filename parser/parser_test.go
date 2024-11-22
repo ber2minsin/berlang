@@ -17,7 +17,7 @@ func TestParse(t *testing.T) {
     tokenStack.Push(utils.Token{Type: utils.TOKEN_NUMBER, Literal: "3"})
 
     parser := NewParser(tokenStack)
-    result, err := parser.Parse(0)
+    result, err := parser.Parse()
     if err != nil {
         t.Fatalf("Parsing error: %v", err)
     }

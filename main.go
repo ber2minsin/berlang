@@ -34,7 +34,7 @@ func main() {
 
 		parser := parser.NewParser(ts)
 
-		result, err := parser.Parse(0)
+		result, err := parser.Parse()
 		if err != nil {
 			fmt.Printf("Parsing error: %v", err)
 		}
