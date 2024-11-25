@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"berlang/ast"
 	"berlang/utils"
 	"errors"
 	"fmt"
@@ -9,18 +10,12 @@ import (
 var rules map[utils.TokenType]ParseRule
 var UnexpectedTokenError = errors.New("Unexpected token")
 
-type ParseFunc func(p *Parser, left interface{}) (interface{}, error)
+type ParseFunc func(p *Parser, left ast.Expr) (ast.Expr, error)
 
 type ParseRule struct {
 	LBP int8
 	NUD ParseFunc
 	LED ParseFunc
-}
-
-type ParseTree struct {
-	NodeType string
-	Value    string
-	Children *[]ParseTree
 }
 
 type Parser struct {
@@ -49,79 +44,79 @@ func (p *Parser) nextToken() error {
 	return nil
 }
 
-func (p *Parser) Parse() (interface{}, error) {
+func (p *Parser) Parse() (ast.Expr, error) {
 
-    switch p.currentToken().Type {
+	switch p.currentToken().Type {
 
-    case utils.TOKEN_LET:
-        return p.parseVariableDeclaration()
+	case utils.TOKEN_LET:
+		// return p.parseVariableDeclaration()
 	case utils.TOKEN_FUNCTION:
-	case utils.TOKEN_IDENT:
 	default:
-		panic("unexpected utils.TokenType")
+		return p.parseExpr(0)
 	}
-    return nil, UnexpectedTokenError
+	return nil, UnexpectedTokenError
 
 }
 
 func (p *Parser) expectToken(expectedType utils.TokenType) error {
-    if err := p.nextToken(); err != nil {
-        return err
-    }
+	if err := p.nextToken(); err != nil {
+		return err
+	}
 
-    if p.currentToken().Type != expectedType {
-        return utils.NewParseError(
-            string(expectedType),
-            string(p.currentToken().Type),
-            float64(p.currentToken().Line),
-            float64(p.currentToken().Column),
-        )
-    }
+	if p.currentToken().Type != expectedType {
+		return utils.NewParseError(
+			string(expectedType),
+			string(p.currentToken().Type),
+			float64(p.currentToken().Line),
+			float64(p.currentToken().Column),
+		)
+	}
 
-    return nil
+	return nil
 }
 
 func (p *Parser) parseVariableDeclaration() (interface{}, error) {
 
-    var varDeclaration map[string]interface{} = make(map[string]interface{})
+	var varDeclaration map[string]interface{} = make(map[string]interface{})
 
-    if err := p.expectToken(utils.TOKEN_IDENT); err != nil {
-        return nil, err
-    }
-    varDeclaration["name"] = string(p.currentToken().Literal)
+	if err := p.expectToken(utils.TOKEN_IDENT); err != nil {
+		return nil, err
+	}
+	varDeclaration["name"] = string(p.currentToken().Literal)
 
-    if err := p.expectToken(utils.TOKEN_COLON); err != nil {
-        return nil, err
-    }
-
-    if err := p.expectToken(utils.TOKEN_TYPE); err != nil {
-        return nil, err
-    }
-
-	if _, ok := utils.Keywords[p.currentToken().Literal]; ok {
-        varDeclaration["type"] = p.currentToken().Literal
+	if err := p.expectToken(utils.TOKEN_COLON); err != nil {
+		return nil, err
 	}
 
-    if err := p.expectToken(utils.TOKEN_ASSIGN); err != nil {
-        return nil, err
-    }
+	if err := p.expectToken(utils.TOKEN_TYPE); err != nil {
+		return nil, err
+	}
 
-    p.nextToken()
+	if _, ok := utils.Keywords[p.currentToken().Literal]; ok {
+		varDeclaration["type"] = p.currentToken().Literal
+	}
 
-    right, err := p.parseStatement(0)
-    if err != nil {
-        return nil, UnexpectedTokenError
-    }
-    varDeclaration["value"] = right
-    return varDeclaration, nil
+	if err := p.expectToken(utils.TOKEN_ASSIGN); err != nil {
+		return nil, err
+	}
+
+	p.nextToken()
+
+	right, err := p.parseExpr(0)
+	if err != nil {
+		return nil, UnexpectedTokenError
+	}
+	varDeclaration["value"] = right
+	return varDeclaration, nil
 }
 
-func (p *Parser) parseStatement(precedence int8) (interface{}, error) {
+func (p *Parser) parseExpr(precedence int8) (ast.Expr, error) {
 	currentToken := p.currentToken()
 	currentTokenRule := rules[currentToken.Type]
 
 	lhs, err := currentTokenRule.NUD(p, nil)
 	if err != nil {
+        fmt.Printf("No NUD was found for the token")
 		return nil, err
 	}
 
@@ -156,79 +151,89 @@ func init() {
 	rules = map[utils.TokenType]ParseRule{
 		utils.TOKEN_NUMBER: {
 			LBP: 0,
-			NUD: func(p *Parser, _ interface{}) (interface{}, error) {
-				value := p.currentToken().Literal
-				return value, nil
+			NUD: func(p *Parser, _ ast.Expr) (ast.Expr, error) {
+				numericLiteral := ast.NewNumericLiteral(p.curToken.Literal)
+				return numericLiteral, nil
 			},
 		},
 		utils.TOKEN_PLUS: {
 			LBP: 10,
-			NUD: func(p *Parser, _ interface{}) (interface{}, error) {
-				right, err := p.parseStatement(100) // High precedence for unary operations
+			// NUD: func(p *Parser, _ ast.Expr) (ast.Expr, error) {
+			// right, err := p.parseStatement(100)
+			// if err != nil {
+			// 	return nil, err
+			// }
+			// TODO add UnaryExpression
+			// return nil, err
+			// },
+			LED: func(p *Parser, left ast.Expr) (ast.Expr, error) {
+
+				right, err := p.parseExpr(10)
+
 				if err != nil {
 					return nil, err
 				}
-				return map[string]interface{}{"op": "+", "right": right}, nil
-			},
-			LED: func(p *Parser, left interface{}) (interface{}, error) {
-				right, err := p.parseStatement(10) // Same precedence
-				if err != nil {
-					return nil, err
-				}
-				return map[string]interface{}{"op": "+", "left": left, "right": right}, nil
+				newBinExpr := ast.NewBinaryExpr(left, right, "+")
+				return newBinExpr, nil
 			},
 		},
 		utils.TOKEN_MINUS: {
 			LBP: 10,
-			NUD: func(p *Parser, _ interface{}) (interface{}, error) {
-				right, err := p.parseStatement(100) // High precedence for unary minus
+			// NUD: func(p *Parser, _ ast.Expr) (ast.Expr, error) {
+			// 	right, err := p.parseStatement(100)
+			// 	if err != nil {
+			// 		return nil, err
+			// 	}
+			// 	return map[string]ast.Expr{"op": "-", "right": right}, nil
+			// },
+			LED: func(p *Parser, left ast.Expr) (ast.Expr, error) {
+				right, err := p.parseExpr(10)
+
 				if err != nil {
 					return nil, err
 				}
-				return map[string]interface{}{"op": "-", "right": right}, nil
-			},
-			LED: func(p *Parser, left interface{}) (interface{}, error) {
-				right, err := p.parseStatement(10) // Same precedence
-				if err != nil {
-					return nil, err
-				}
-				return map[string]interface{}{"op": "-", "left": left, "right": right}, nil
+				newBinExpr := ast.NewBinaryExpr(left, right, "-")
+				return newBinExpr, nil
 			},
 		},
 		utils.TOKEN_MULT: {
 			LBP: 20,
-			NUD: nil, // Multiplication not valid as prefix
-			LED: func(p *Parser, left interface{}) (interface{}, error) {
-				right, err := p.parseStatement(20) // Same precedence
+			NUD: nil,
+			LED: func(p *Parser, left ast.Expr) (ast.Expr, error) {
+				right, err := p.parseExpr(20)
+
 				if err != nil {
 					return nil, err
 				}
-				return map[string]interface{}{"op": "*", "left": left, "right": right}, nil
+				newBinExpr := ast.NewBinaryExpr(left, right, "*")
+				return newBinExpr, nil
 			},
 		},
 		utils.TOKEN_DIV: {
 			LBP: 20,
-			NUD: nil, // Division not valid as prefix
-			LED: func(p *Parser, left interface{}) (interface{}, error) {
-				right, err := p.parseStatement(20) // Same precedence
+			NUD: nil,
+			LED: func(p *Parser, left ast.Expr) (ast.Expr, error) {
+				right, err := p.parseExpr(20)
+
 				if err != nil {
 					return nil, err
 				}
-				return map[string]interface{}{"op": "/", "left": left, "right": right}, nil
+				newBinExpr := ast.NewBinaryExpr(left, right, "/")
+				return newBinExpr, nil
 			},
 		},
 		utils.TOKEN_IDENT: {
 			LBP: 0,
-			NUD: func(p *Parser, _ interface{}) (interface{}, error) {
+			NUD: func(p *Parser, _ ast.Expr) (ast.Expr, error) {
 				value := p.currentToken().Literal
-				return value, nil
+				return ast.NewIdentifier(value), nil
 			},
 		},
 		utils.TOKEN_LPAREN: {
 			LBP: 0,
-			NUD: func(p *Parser, _ interface{}) (interface{}, error) {
+			NUD: func(p *Parser, _ ast.Expr) (ast.Expr, error) {
 				p.nextToken()
-				expr, err := p.parseStatement(0)
+				expr, err := p.parseExpr(0)
 				if err != nil {
 					return nil, err
 				}
@@ -242,8 +247,8 @@ func init() {
 		},
 		utils.TOKEN_RPAREN: {
 			LBP: 0,
-			NUD: nil, // Parenthesis closing is not handled directly by NUD
-			LED: nil, // Not applicable for LED
+			NUD: nil,
+			LED: nil,
 		},
 	}
 }

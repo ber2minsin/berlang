@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 func main() {
@@ -39,7 +41,7 @@ func main() {
 			fmt.Printf("Parsing error: %v", err)
 		}
 
-		fmt.Printf("Parsed Result: %+v\n", result)
+		spew.Printf("Parsed Result: %+v\n", result)
 
 	}
 
