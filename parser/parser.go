@@ -239,7 +239,7 @@ func init() {
 				}
 
 				if p.currentToken().Type != utils.TOKEN_RPAREN {
-					return nil, fmt.Errorf("expected ')', got %v", p.currentToken().Type)
+					return nil, utils.NewParseError(")", p.currentToken().Literal, float64(p.curToken.Line), float64(p.currentToken().Column))
 				}
 
 				return expr, nil
