@@ -60,10 +60,10 @@ func (n *NumericLiteral) GetKind() NodeType { return n.Kind }
 func (n *NumericLiteral) stmtNode()         {}
 func (n *NumericLiteral) exprNode()         {}
 
-func NewProgram(body []Stmt) *Program {
+func NewProgram() *Program {
 	return &Program{
 		Kind: ProgramType,
-		Body: body,
+		Body: make([]Stmt, 0),
 	}
 }
 

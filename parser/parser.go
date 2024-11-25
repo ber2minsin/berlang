@@ -44,15 +44,21 @@ func (p *Parser) nextToken() error {
 	return nil
 }
 
-func (p *Parser) Parse() (ast.Expr, error) {
+func (p *Parser) Parse() (ast.Stmt, error) {
 
+	program := ast.NewProgram()
 	switch p.currentToken().Type {
 
 	case utils.TOKEN_LET:
 		// return p.parseVariableDeclaration()
 	case utils.TOKEN_FUNCTION:
 	default:
-		return p.parseExpr(0)
+        parsedStmt, err := p.parseExpr(0)
+        if err != nil {
+            return nil, err
+        }
+		program.Body = append(program.Body, parsedStmt)
+        return program, nil
 	}
 	return nil, UnexpectedTokenError
 
@@ -116,7 +122,7 @@ func (p *Parser) parseExpr(precedence int8) (ast.Expr, error) {
 
 	lhs, err := currentTokenRule.NUD(p, nil)
 	if err != nil {
-        fmt.Printf("No NUD was found for the token")
+		fmt.Printf("No NUD was found for the token")
 		return nil, err
 	}
 
