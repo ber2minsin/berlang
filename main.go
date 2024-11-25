@@ -1,8 +1,8 @@
 package main
 
 import (
-	"berlang/lexer"
-	"berlang/parser"
+	"berlang/frontend/lexer"
+	"berlang/frontend/parser"
 	"bufio"
 	"fmt"
 	"os"

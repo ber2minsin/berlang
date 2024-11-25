@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"berlang/ast"
+	"berlang/frontend/ast"
 	"berlang/utils"
 	"errors"
 	"fmt"
