@@ -8,7 +8,7 @@ const (
 )
 
 type RtVal interface {
-	GetType()
+	GetType() ValueType
 }
 
 type NumVal struct {

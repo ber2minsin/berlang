@@ -6,7 +6,6 @@ import (
 	"sync"
 )
 
-var empty_stack = errors.New("Tried popping on an empty stack")
 
 type TokenType string
 
@@ -95,7 +94,7 @@ func (ts *TokenQueue) Pop() (Token, error) {
 
 	l := len(ts.tokens)
 	if l == 0 {
-		return Token{}, empty_stack
+		return Token{}, errors.New("Tried popping on an empty queue")
 	}
 
 	res := ts.tokens[0]

@@ -3,6 +3,7 @@ package main
 import (
 	"berlang/frontend/lexer"
 	"berlang/frontend/parser"
+	"berlang/runtime/interpreter"
 	"bufio"
 	"fmt"
 	"os"
@@ -32,7 +33,7 @@ func main() {
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "reading standard input:", err)
 		}
-        fmt.Printf("Lexer returned: %+v\n", ts)
+        // fmt.Printf("Lexer returned: %+v\n", ts)
 
 		parser := parser.NewParser(ts)
 
@@ -41,7 +42,13 @@ func main() {
 			fmt.Printf("Parsing error: %v", err)
 		}
 
-		spew.Printf("Parsed Result: %+v\n", result)
+		// spew.Printf("Parsed Result: %+v\n", result)
+
+        rt := interpreter.NewRuntime()
+        rtresult, _ := rt.Evaluate(result)
+
+        spew.Printf("Berlang returned result: %+v\n", rtresult)
+
 
 	}
 

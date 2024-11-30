@@ -88,7 +88,6 @@ func (l *Lexer) nextToken() (utils.Token, error) {
 	var tok utils.Token
 	tok.Line = l.line
 	tok.Column = l.column
-	fmt.Printf("Current character: '%c' (ASCII: %d)\n", l.ch, l.ch)
 
 	if l.ch == 0 {
 		tok.Type = utils.TOKEN_EOF

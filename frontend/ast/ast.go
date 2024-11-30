@@ -53,7 +53,7 @@ func (i *Identifier) exprNode()         {}
 
 type NumericLiteral struct {
 	Kind  NodeType `json:"kind"`
-	Value string `json:"value"`
+	Value string   `json:"value"`
 }
 
 func (n *NumericLiteral) GetKind() NodeType { return n.Kind }
