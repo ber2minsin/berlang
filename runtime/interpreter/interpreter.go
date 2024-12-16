@@ -1,7 +1,9 @@
 package interpreter
 
+
 import (
 	"berlang/frontend/ast"
+	"berlang/runtime/environment"
 	"berlang/runtime/values"
 	"fmt"
 	"strconv"
@@ -10,7 +12,13 @@ import (
 )
 
 type Runtime struct {
-	Variables map[string]interface{} // TODO too broad, perhaps use an interface
+	// TODO maybe we can handle this differently
+	// this is not good for multithreading
+	CurEnv environment.Environment
+}
+
+func NewRuntime() Runtime {
+	return Runtime{environment.NewEnvironment(nil)}
 }
 
 func (r *Runtime) evalProgramType(p *ast.Program) (values.RtVal, error) {
@@ -38,58 +46,54 @@ func (r *Runtime) evalNumericVal(nl *ast.NumericLiteral) (values.RtVal, error) {
 }
 
 func (r *Runtime) evalNumericBinaryExpr(lhs *values.NumVal, rhs *values.NumVal, op string) (values.RtVal, error) {
-    switch op {
-    case "+":
-        return &values.NumVal{Value: lhs.Value + rhs.Value, Type: values.NumberValue}, nil
-    case "-":
-        return &values.NumVal{Value: lhs.Value - rhs.Value, Type: values.NumberValue}, nil
-    case "*":
-        return &values.NumVal{Value: lhs.Value * rhs.Value, Type: values.NumberValue}, nil
-    case "/":
-        if rhs.Value == 0 {
-            return nil, fmt.Errorf("division by zero")
-        }
-        return &values.NumVal{Value: lhs.Value / rhs.Value, Type: values.NumberValue}, nil
-    default:
-        return nil, fmt.Errorf("unsupported operator: %s", op)
-    }
+	switch op {
+	case "+":
+		return &values.NumVal{Value: lhs.Value + rhs.Value, Type: values.NumberValue}, nil
+	case "-":
+		return &values.NumVal{Value: lhs.Value - rhs.Value, Type: values.NumberValue}, nil
+	case "*":
+		return &values.NumVal{Value: lhs.Value * rhs.Value, Type: values.NumberValue}, nil
+	case "/":
+		if rhs.Value == 0 {
+			return nil, fmt.Errorf("division by zero")
+		}
+		return &values.NumVal{Value: lhs.Value / rhs.Value, Type: values.NumberValue}, nil
+	default:
+		return nil, fmt.Errorf("unsupported operator: %s", op)
+	}
 }
 
 func (r *Runtime) evalBinaryExpr(be *ast.BinaryExpr) (values.RtVal, error) {
-    fmt.Printf("Evaluating BinaryExpr: %+v\n", be)
+	rhs, err := r.Evaluate(be.Right)
+	if err != nil {
+		return nil, err
+	}
 
-    rhs, err := r.Evaluate(be.Right)
-    if err != nil {
-        fmt.Printf("Error evaluating RHS: %v\n", err)
-        return nil, err
-    }
-    fmt.Printf("RHS evaluated to: %+v\n", rhs)
+	lhs, err := r.Evaluate(be.Left)
+	if err != nil {
+		return nil, err
+	}
 
-    lhs, err := r.Evaluate(be.Left)
-    if err != nil {
-        fmt.Printf("Error evaluating LHS: %v\n", err)
-        return nil, err
-    }
-    fmt.Printf("LHS evaluated to: %+v\n", lhs)
+	if lhs.GetType() == values.NumberValue && rhs.GetType() == values.NumberValue {
+		result, err := r.evaluateNumeric(lhs, rhs, be.Operator)
+		if err != nil {
+			return nil, err
+		}
+		return result, nil
+	}
+	return nil, fmt.Errorf("Binary expression did not evaluate to a NumericLiteral")
 
-    if lhs.GetType() == values.NumberValue && rhs.GetType() == values.NumberValue {
-        lhsNumVal := lhs.(*values.NumVal)
-        rhsNumVal := rhs.(*values.NumVal)
+}
 
-        result, err := r.evalNumericBinaryExpr(lhsNumVal, rhsNumVal, be.Operator)
-        if err != nil {
-            fmt.Printf("Error in numeric binary expression: %v\n", err)
-            return nil, err
-        }
-        fmt.Printf("BinaryExpr result: %+v\n", result)
-        return result, nil
-    }
-
-    return nil, fmt.Errorf("unsupported binary expression types: %T and %T", lhs, rhs)
+func (r *Runtime) evaluateNumeric(lhs, rhs values.RtVal, operator string) (values.RtVal, error) {
+	if lhs.GetType() == values.NumberValue && rhs.GetType() == values.NumberValue {
+		return r.evalNumericBinaryExpr(lhs.(*values.NumVal), rhs.(*values.NumVal), operator)
+	}
+	return nil, fmt.Errorf("unsupported binary expression types: %T and %T", lhs, rhs)
 }
 
 func (r *Runtime) Evaluate(stmt ast.Stmt) (values.RtVal, error) {
-    spew.Printf("Requested to evaluate %+v\n", stmt)
+	spew.Printf("Requested to evaluate %+v\n", stmt)
 
 	switch stmt.GetKind() {
 	case ast.BinaryExprType:
@@ -98,12 +102,14 @@ func (r *Runtime) Evaluate(stmt ast.Stmt) (values.RtVal, error) {
 		return r.evalProgramType(stmt.(*ast.Program))
 	case ast.NumericLiteralType:
 		return r.evalNumericVal(stmt.(*ast.NumericLiteral))
+	case ast.IdentifierType:
+        fmt.Printf("Trying to resolve %v+\n", stmt)
+		return r.CurEnv.Resolve(stmt.(*ast.Identifier))
+    case ast.VarDeclType:
+        fmt.Println("Declaring variable")
+        return r.CurEnv.DeclareVar((stmt.(*ast.VarDecl)), r)
+
 	default:
-
-        return nil, fmt.Errorf("Unrecognized expression %+v", stmt)
+		return nil, fmt.Errorf("Unrecognized expression %+v", stmt.GetKind())
 	}
-}
-
-func NewRuntime() Runtime {
-	return Runtime{Variables: make(map[string]interface{})}
 }

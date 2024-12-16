@@ -16,6 +16,7 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Println("Interactive Berlang Shell - Press Ctrl+C to exit")
 
+	rt := interpreter.NewRuntime()
 	for {
 		fmt.Print("> ")
 		if !scanner.Scan() {
@@ -33,7 +34,7 @@ func main() {
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "reading standard input:", err)
 		}
-        // fmt.Printf("Lexer returned: %+v\n", ts)
+		// fmt.Printf("Lexer returned: %+v\n", ts)
 
 		parser := parser.NewParser(ts)
 
@@ -44,11 +45,14 @@ func main() {
 
 		// spew.Printf("Parsed Result: %+v\n", result)
 
-        rt := interpreter.NewRuntime()
-        rtresult, _ := rt.Evaluate(result)
+		// rt.CurEnv.DeclareVar("x", &values.NumVal{Type: values.NumberValue, Value: 10})
 
-        spew.Printf("Berlang returned result: %+v\n", rtresult)
+		rtresult, err := rt.Evaluate(result)
+		if err != nil {
+			fmt.Printf("Error occurred: %v\n", err)
+		}
 
+		spew.Printf("Berlang returned result: %+v\n", rtresult)
 
 	}
 

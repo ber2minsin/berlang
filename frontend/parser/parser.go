@@ -49,16 +49,21 @@ func (p *Parser) Parse() (ast.Stmt, error) {
 	program := ast.NewProgram()
 	switch p.currentToken().Type {
 
-	case utils.TOKEN_LET:
-		// return p.parseVariableDeclaration()
+	case utils.TOKEN_LET: // TODO support const
+		parsedVar, err := p.parseVariableDeclaration()
+		if err != nil {
+			return nil, err
+		}
+		return parsedVar, nil
+
 	case utils.TOKEN_FUNCTION:
 	default:
-        parsedStmt, err := p.parseExpr(0)
-        if err != nil {
-            return nil, err
-        }
+		parsedStmt, err := p.parseExpr(0)
+		if err != nil {
+			return nil, err
+		}
 		program.Body = append(program.Body, parsedStmt)
-        return program, nil
+		return program, nil
 	}
 	return nil, UnexpectedTokenError
 
@@ -81,14 +86,12 @@ func (p *Parser) expectToken(expectedType utils.TokenType) error {
 	return nil
 }
 
-func (p *Parser) parseVariableDeclaration() (interface{}, error) {
-
-	var varDeclaration map[string]interface{} = make(map[string]interface{})
+func (p *Parser) parseVariableDeclaration() (ast.Expr, error) {
 
 	if err := p.expectToken(utils.TOKEN_IDENT); err != nil {
 		return nil, err
 	}
-	varDeclaration["name"] = string(p.currentToken().Literal)
+	name := string(p.currentToken().Literal)
 
 	if err := p.expectToken(utils.TOKEN_COLON); err != nil {
 		return nil, err
@@ -98,8 +101,10 @@ func (p *Parser) parseVariableDeclaration() (interface{}, error) {
 		return nil, err
 	}
 
+	var vartype string
 	if _, ok := utils.Keywords[p.currentToken().Literal]; ok {
-		varDeclaration["type"] = p.currentToken().Literal
+		vartype = p.currentToken().Literal
+
 	}
 
 	if err := p.expectToken(utils.TOKEN_ASSIGN); err != nil {
@@ -112,8 +117,8 @@ func (p *Parser) parseVariableDeclaration() (interface{}, error) {
 	if err != nil {
 		return nil, UnexpectedTokenError
 	}
-	varDeclaration["value"] = right
-	return varDeclaration, nil
+
+    return ast.NewVarDecl(name, vartype, &right), nil
 }
 
 func (p *Parser) parseExpr(precedence int8) (ast.Expr, error) {
@@ -122,7 +127,7 @@ func (p *Parser) parseExpr(precedence int8) (ast.Expr, error) {
 
 	lhs, err := currentTokenRule.NUD(p, nil)
 	if err != nil {
-		fmt.Printf("No NUD was found for the token")
+		fmt.Printf("No NUD was found for the token, %v", currentToken)
 		return nil, err
 	}
 
@@ -230,9 +235,10 @@ func init() {
 		},
 		utils.TOKEN_IDENT: {
 			LBP: 0,
-			NUD: func(p *Parser, _ ast.Expr) (ast.Expr, error) {
-				value := p.currentToken().Literal
-				return ast.NewIdentifier(value), nil
+			NUD: func(p *Parser, name ast.Expr) (ast.Expr, error) {
+				varname := p.currentToken().Literal
+				fmt.Printf("Found varname %v \n", varname)
+				return ast.NewIdentifier(varname), nil
 			},
 		},
 		utils.TOKEN_LPAREN: {

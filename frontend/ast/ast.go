@@ -7,6 +7,7 @@ const (
 	NumericLiteralType NodeType = "NumericLiteral"
 	IdentifierType     NodeType = "Identifier"
 	BinaryExprType     NodeType = "BinaryExpr"
+	VarDeclType        NodeType = "VarDecl"
 )
 
 type Node interface {
@@ -24,18 +25,18 @@ type Expr interface {
 }
 
 type Program struct {
-	Kind NodeType `json:"kind"`
-	Body []Stmt   `json:"body"`
+	Kind NodeType
+	Body []Stmt
 }
 
 func (p *Program) GetKind() NodeType { return p.Kind }
 func (p *Program) stmtNode()         {}
 
 type BinaryExpr struct {
-	Kind     NodeType `json:"kind"`
-	Left     Expr     `json:"left"`
-	Right    Expr     `json:"right"`
-	Operator string   `json:"operator"`
+	Kind     NodeType
+	Left     Expr
+	Right    Expr
+	Operator string
 }
 
 func (b *BinaryExpr) GetKind() NodeType { return b.Kind }
@@ -43,8 +44,8 @@ func (b *BinaryExpr) stmtNode()         {}
 func (b *BinaryExpr) exprNode()         {}
 
 type Identifier struct {
-	Kind   NodeType `json:"kind"`
-	Symbol string   `json:"symbol"`
+	Kind NodeType
+	Name string
 }
 
 func (i *Identifier) GetKind() NodeType { return i.Kind }
@@ -52,13 +53,28 @@ func (i *Identifier) stmtNode()         {}
 func (i *Identifier) exprNode()         {}
 
 type NumericLiteral struct {
-	Kind  NodeType `json:"kind"`
-	Value string   `json:"value"`
+	Kind  NodeType
+	Value string
 }
 
 func (n *NumericLiteral) GetKind() NodeType { return n.Kind }
 func (n *NumericLiteral) stmtNode()         {}
 func (n *NumericLiteral) exprNode()         {}
+
+type VarDecl struct {
+	Kind  NodeType
+	Name  string
+	Type  string // TODO actually define these types so we can check
+	Value *Expr
+}
+
+func (n *VarDecl) GetKind() NodeType { return n.Kind }
+func (n *VarDecl) stmtNode()         {}
+func (n *VarDecl) exprNode()         {}
+
+func NewVarDecl(name string, vartype string, value *Expr) *VarDecl {
+	return &VarDecl{Kind: VarDeclType, Name: name, Type: vartype, Value: value}
+}
 
 func NewProgram() *Program {
 	return &Program{
@@ -76,10 +92,10 @@ func NewBinaryExpr(left Expr, right Expr, operator string) *BinaryExpr {
 	}
 }
 
-func NewIdentifier(symbol string) *Identifier {
+func NewIdentifier(name string) *Identifier {
 	return &Identifier{
-		Kind:   IdentifierType,
-		Symbol: symbol,
+		Kind: IdentifierType,
+		Name: name,
 	}
 }
 
