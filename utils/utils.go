@@ -6,11 +6,11 @@ import (
 	"sync"
 )
 
-
 type TokenType string
 
 const (
 	TOKEN_LET      TokenType = "LET"
+	TOKEN_CONST    TokenType = "CONST"
 	TOKEN_FUNCTION TokenType = "FUNCTION"
 	TOKEN_IDENT    TokenType = "IDENT"
 	TOKEN_COLON    TokenType = "COLON"
@@ -34,6 +34,7 @@ const (
 
 var Keywords = map[string]TokenType{
 	"let":    TOKEN_LET,
+	"const":  TOKEN_CONST,
 	"def":    TOKEN_FUNCTION,
 	"int":    TOKEN_TYPE,
 	"string": TOKEN_TYPE,
@@ -50,19 +51,19 @@ var SingleCharTokens = map[byte]TokenType{
 	'}': TOKEN_RBRACE,
 	')': TOKEN_RPAREN,
 	'(': TOKEN_LPAREN,
-    '+': TOKEN_PLUS,
-    '-': TOKEN_MINUS,
-    '*': TOKEN_MULT,
-    '/': TOKEN_DIV,
+	'+': TOKEN_PLUS,
+	'-': TOKEN_MINUS,
+	'*': TOKEN_MULT,
+	'/': TOKEN_DIV,
 }
 
 func GetKeyByValue(m map[string]TokenType, value TokenType) (string, bool) {
-    for k, v := range m {
-        if v == value {
-            return k, true
-        }
-    }
-    return "", false
+	for k, v := range m {
+		if v == value {
+			return k, true
+		}
+	}
+	return "", false
 }
 
 type Token struct {
@@ -102,7 +103,16 @@ func (ts *TokenQueue) Pop() (Token, error) {
 
 	return res, nil
 }
+func (ts *TokenQueue) Peek() (Token, error) {
+	ts.lock.Lock()
+	defer ts.lock.Unlock()
 
+	if len(ts.tokens) == 0 {
+		return Token{}, errors.New("Tried peeking on an empty queue")
+	}
+
+	return ts.tokens[0], nil
+}
 func (ts *TokenQueue) Len() int {
 	ts.lock.Lock()
 	defer ts.lock.Unlock()
@@ -120,5 +130,5 @@ func (ts *TokenQueue) Tokens() []Token {
 }
 
 func NewParseError(expected string, found string, line, col float64) error {
-    return fmt.Errorf("Expected %v, found: %v at line: %f, col: %f", expected, found, line, col)
+	return fmt.Errorf("Expected %v, found: %v at line: %f, col: %f", expected, found, line, col)
 }

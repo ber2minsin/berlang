@@ -49,8 +49,8 @@ func (p *Parser) Parse() (ast.Stmt, error) {
 	program := ast.NewProgram()
 	switch p.currentToken().Type {
 
-	case utils.TOKEN_LET: // TODO support const
-		parsedVar, err := p.parseVariableDeclaration()
+	case utils.TOKEN_LET, utils.TOKEN_CONST:
+		parsedVar, err := p.parseVariableDeclaration(p.currentToken().Type)
 		if err != nil {
 			return nil, err
 		}
@@ -86,7 +86,15 @@ func (p *Parser) expectToken(expectedType utils.TokenType) error {
 	return nil
 }
 
-func (p *Parser) parseVariableDeclaration() (ast.Expr, error) {
+func (p *Parser) peekToken() (*utils.Token, error) {
+	token, err := p.tokenStack.Peek()
+	if err != nil {
+		return nil, err
+	}
+	return &token, nil
+}
+
+func (p *Parser) parseVariableDeclaration(tokenType utils.TokenType) (ast.Expr, error) {
 
 	if err := p.expectToken(utils.TOKEN_IDENT); err != nil {
 		return nil, err
@@ -107,6 +115,16 @@ func (p *Parser) parseVariableDeclaration() (ast.Expr, error) {
 
 	}
 
+	lineEnded := checkLineEnded(p)
+	if lineEnded {
+		if tokenType == utils.TOKEN_LET {
+			fmt.Println("Line has ended, valid declaration with let")
+			return ast.NewVarDecl(name, vartype, nil), nil
+		} else {
+			return nil, UnexpectedTokenError
+		}
+	}
+
 	if err := p.expectToken(utils.TOKEN_ASSIGN); err != nil {
 		return nil, err
 	}
@@ -118,7 +136,23 @@ func (p *Parser) parseVariableDeclaration() (ast.Expr, error) {
 		return nil, UnexpectedTokenError
 	}
 
-    return ast.NewVarDecl(name, vartype, &right), nil
+	return ast.NewVarDecl(name, vartype, &right), nil
+}
+
+func checkLineEnded(p *Parser) bool {
+	// TODO change this to peek so we do not consume the token
+	currentToken, err := p.peekToken()
+	fmt.Printf("Checking if line has ended, current token %v\n", currentToken)
+
+	if err != nil {
+		return false
+	}
+
+	if currentToken.Type == utils.TOKEN_EOF || currentToken.Type == utils.TOKEN_SEMI {
+		return true
+	}
+	return false
+
 }
 
 func (p *Parser) parseExpr(precedence int8) (ast.Expr, error) {

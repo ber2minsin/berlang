@@ -5,6 +5,7 @@ import (
 	"berlang/runtime/values"
 	"fmt"
 )
+
 type EvalInterface interface {
 	Evaluate(stmt ast.Stmt) (values.RtVal, error)
 }
@@ -18,8 +19,8 @@ func NewEnvironment(parent *Environment) Environment {
 }
 
 func (env *Environment) Resolve(ident *ast.Identifier) (values.RtVal, error) {
-    fmt.Printf("Trying to resolve variable %v\n", ident.Name)
-    fmt.Printf("Current env variables %v\n", env.variables)
+	fmt.Printf("Trying to resolve variable %v\n", ident.Name)
+	fmt.Printf("Current env variables %v\n", env.variables)
 
 	if env.variables == nil {
 		fmt.Println("There is no variables in this environment, looking to the parent")
@@ -35,13 +36,20 @@ func (env *Environment) Resolve(ident *ast.Identifier) (values.RtVal, error) {
 }
 
 func (env *Environment) DeclareVar(decl *ast.VarDecl, r EvalInterface) (values.RtVal, error) {
+	if decl.Value == nil {
+        println("Requested to declare a None variable")
+		val := &values.NoneVal{}
+		env.variables[decl.Name] = val
+		return val, nil
+	}
+
 	val, err := r.Evaluate(*decl.Value)
 	if err != nil {
 		return nil, err
 	}
 	env.variables[decl.Name] = val
 
-    fmt.Printf("Current env variables %v\n", env.variables)
+	fmt.Printf("Current env variables %v\n", env.variables)
 	return val, nil
 }
 

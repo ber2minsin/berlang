@@ -34,7 +34,6 @@ func main() {
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "reading standard input:", err)
 		}
-		// fmt.Printf("Lexer returned: %+v\n", ts)
 
 		parser := parser.NewParser(ts)
 
@@ -42,10 +41,6 @@ func main() {
 		if err != nil {
 			fmt.Printf("Parsing error: %v", err)
 		}
-
-		// spew.Printf("Parsed Result: %+v\n", result)
-
-		// rt.CurEnv.DeclareVar("x", &values.NumVal{Type: values.NumberValue, Value: 10})
 
 		rtresult, err := rt.Evaluate(result)
 		if err != nil {
