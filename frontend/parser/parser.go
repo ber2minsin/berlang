@@ -48,14 +48,31 @@ func (p *Parser) Parse() (ast.Stmt, error) {
 
 	program := ast.NewProgram()
 	switch p.currentToken().Type {
-
 	case utils.TOKEN_LET, utils.TOKEN_CONST:
 		parsedVar, err := p.parseVariableDeclaration(p.currentToken().Type)
 		if err != nil {
 			return nil, err
 		}
 		return parsedVar, nil
+    case utils.TOKEN_IDENT:
+        // FIXME a line can start with an identifier and be a variable
 
+
+        if token, err := p.peekToken(); err == nil && token.Type == utils.TOKEN_ASSIGN {
+            fmt.Println("Found variable assignment")
+            parsedVar, err := p.parseVariableAssignment()
+            if err != nil {
+                return nil, err
+            }
+            return parsedVar, nil
+        } else {
+            fmt.Println("Found expression")
+            parsedStmt, err := p.parseExpr(0)
+            if err != nil {
+                return nil, err
+            }
+            return parsedStmt, nil
+        }
 	case utils.TOKEN_FUNCTION:
 	default:
 		parsedStmt, err := p.parseExpr(0)
@@ -93,6 +110,25 @@ func (p *Parser) peekToken() (*utils.Token, error) {
 	}
 	return &token, nil
 }
+
+func (p *Parser) parseVariableAssignment() (ast.Expr, error) {
+
+    name := string(p.currentToken().Literal)
+
+    if err := p.expectToken(utils.TOKEN_ASSIGN); err != nil {
+        return nil, err
+    }
+
+    p.nextToken()
+
+    right, err := p.parseExpr(0)
+    if err != nil {
+        return nil, err
+    }
+
+    return ast.NewVarAssign(name, &right), nil
+}
+
 
 func (p *Parser) parseVariableDeclaration(tokenType utils.TokenType) (ast.Expr, error) {
 

@@ -108,6 +108,9 @@ func (r *Runtime) Evaluate(stmt ast.Stmt) (values.RtVal, error) {
     case ast.VarDeclType:
         fmt.Println("Declaring variable")
         return r.CurEnv.DeclareVar((stmt.(*ast.VarDecl)), r)
+    case ast.VarAssignType:
+        fmt.Println("Assigning variable")
+        return r.CurEnv.AssignVar((stmt.(*ast.VarAssign)), r)
 	default:
 		return nil, fmt.Errorf("Unrecognized expression %+v", stmt.GetKind())
 	}

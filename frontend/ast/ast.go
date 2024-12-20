@@ -8,6 +8,7 @@ const (
 	IdentifierType     NodeType = "Identifier"
 	BinaryExprType     NodeType = "BinaryExpr"
 	VarDeclType        NodeType = "VarDecl"
+    VarAssignType      NodeType = "VarAssign"
 )
 
 type Node interface {
@@ -71,6 +72,21 @@ type VarDecl struct {
 func (n *VarDecl) GetKind() NodeType { return n.Kind }
 func (n *VarDecl) stmtNode()         {}
 func (n *VarDecl) exprNode()         {}
+
+type VarAssign struct {
+    Kind  NodeType
+    Name  string
+    Value *Expr
+}
+
+func (n *VarAssign) GetKind() NodeType { return n.Kind }
+func (n *VarAssign) stmtNode()         {}
+func (n *VarAssign) exprNode()         {}
+
+
+func NewVarAssign(name string, value *Expr) *VarAssign {
+    return &VarAssign{Kind: VarAssignType, Name: name, Value: value}
+}
 
 func NewVarDecl(name string, vartype string, value *Expr) *VarDecl {
 	return &VarDecl{Kind: VarDeclType, Name: name, Type: vartype, Value: value}

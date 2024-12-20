@@ -49,8 +49,17 @@ func (env *Environment) DeclareVar(decl *ast.VarDecl, r EvalInterface) (values.R
 	}
 	env.variables[decl.Name] = val
 
-	fmt.Printf("Current env variables %v\n", env.variables)
 	return val, nil
+}
+
+func (env *Environment) AssignVar(assign *ast.VarAssign, r EvalInterface) (values.RtVal, error) {
+    val, err := r.Evaluate(*assign.Value)
+    if err != nil {
+        return nil, err
+    }
+    env.variables[assign.Name] = val
+
+    return val, nil
 }
 
 // TODO Keeping in mind to have RAII in berlang, we need to pass the variables into the child context (as value),
