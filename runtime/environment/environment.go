@@ -11,11 +11,22 @@ type EvalInterface interface {
 }
 type Environment struct {
 	parent    *Environment
-	variables map[string]values.RtVal
+	variables map[string]Variable
+}
+
+// Create a variable type that stores map[name]variable which has the const/let type and the value
+type Variable struct {
+    value values.RtVal
+    // isConst bool
+    varType string
+}
+
+func NewVariable(value values.RtVal, varType string) Variable {
+    return Variable{value: value, varType: varType}
 }
 
 func NewEnvironment(parent *Environment) Environment {
-	return Environment{parent: parent, variables: make(map[string]values.RtVal)}
+	return Environment{parent: parent, variables: make(map[string]Variable)}
 }
 
 func (env *Environment) Resolve(ident *ast.Identifier) (values.RtVal, error) {
@@ -26,8 +37,8 @@ func (env *Environment) Resolve(ident *ast.Identifier) (values.RtVal, error) {
 		fmt.Println("There is no variables in this environment, looking to the parent")
 		return env.parent.Resolve(ident)
 	}
-	if value, found := env.variables[ident.Name]; found {
-		return value, nil
+	if variable, found := env.variables[ident.Name]; found {
+		return variable.value, nil
 	}
 	if env.parent != nil {
 		return env.parent.Resolve(ident)
@@ -39,7 +50,7 @@ func (env *Environment) DeclareVar(decl *ast.VarDecl, r EvalInterface) (values.R
 	if decl.Value == nil {
         println("Requested to declare a None variable")
 		val := &values.NoneVal{}
-		env.variables[decl.Name] = val
+		env.variables[decl.Name] = NewVariable(val, decl.ValType)
 		return val, nil
 	}
 
@@ -47,7 +58,7 @@ func (env *Environment) DeclareVar(decl *ast.VarDecl, r EvalInterface) (values.R
 	if err != nil {
 		return nil, err
 	}
-	env.variables[decl.Name] = val
+	env.variables[decl.Name] = NewVariable(val, decl.ValType)
 
 	return val, nil
 }
@@ -57,7 +68,16 @@ func (env *Environment) AssignVar(assign *ast.VarAssign, r EvalInterface) (value
     if err != nil {
         return nil, err
     }
-    env.variables[assign.Name] = val
+    if _, found := env.variables[assign.Name]; !found {
+        return nil, fmt.Errorf("variable '%s' not found", assign.Name)
+    }
+
+    // Check if the variable is a constant
+    if env.variables[assign.Name].varType == "const" {
+        return nil, fmt.Errorf("variable '%s' is a constant and cannot be reassigned", assign.Name)
+    }
+
+    env.variables[assign.Name] = NewVariable(val, "let")
 
     return val, nil
 }

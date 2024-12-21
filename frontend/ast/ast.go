@@ -65,13 +65,18 @@ func (n *NumericLiteral) exprNode()         {}
 type VarDecl struct {
 	Kind  NodeType
 	Name  string
-	Type  string // TODO actually define these types so we can check
+	ValType  string // TODO actually define these types so we can check
+    VarType string // This is either let or const for now
 	Value *Expr
 }
 
 func (n *VarDecl) GetKind() NodeType { return n.Kind }
 func (n *VarDecl) stmtNode()         {}
 func (n *VarDecl) exprNode()         {}
+
+func NewVarDecl(name string, vartype string, value *Expr) *VarDecl {
+	return &VarDecl{Kind: VarDeclType, Name: name, ValType: vartype, Value: value}
+}
 
 type VarAssign struct {
     Kind  NodeType
@@ -88,9 +93,6 @@ func NewVarAssign(name string, value *Expr) *VarAssign {
     return &VarAssign{Kind: VarAssignType, Name: name, Value: value}
 }
 
-func NewVarDecl(name string, vartype string, value *Expr) *VarDecl {
-	return &VarDecl{Kind: VarDeclType, Name: name, Type: vartype, Value: value}
-}
 
 func NewProgram() *Program {
 	return &Program{

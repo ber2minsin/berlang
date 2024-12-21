@@ -3,12 +3,10 @@ package parser
 import (
 	"berlang/frontend/ast"
 	"berlang/utils"
-	"errors"
 	"fmt"
 )
 
 var rules map[utils.TokenType]ParseRule
-var UnexpectedTokenError = errors.New("Unexpected token")
 
 type ParseFunc func(p *Parser, left ast.Expr) (ast.Expr, error)
 
@@ -54,25 +52,23 @@ func (p *Parser) Parse() (ast.Stmt, error) {
 			return nil, err
 		}
 		return parsedVar, nil
-    case utils.TOKEN_IDENT:
-        // FIXME a line can start with an identifier and be a variable
-
-
-        if token, err := p.peekToken(); err == nil && token.Type == utils.TOKEN_ASSIGN {
-            fmt.Println("Found variable assignment")
-            parsedVar, err := p.parseVariableAssignment()
-            if err != nil {
-                return nil, err
-            }
-            return parsedVar, nil
-        } else {
-            fmt.Println("Found expression")
-            parsedStmt, err := p.parseExpr(0)
-            if err != nil {
-                return nil, err
-            }
-            return parsedStmt, nil
-        }
+	case utils.TOKEN_IDENT:
+		if token, err := p.peekToken(); err == nil && token.Type == utils.TOKEN_ASSIGN {
+            // This is a variable assignment
+            // TODO check if the variable is a constant
+			parsedVar, err := p.parseVariableAssignment()
+			if err != nil {
+				return nil, err
+			}
+			return parsedVar, nil
+		} else {
+            // This is just an expression, not assigning a variable
+			parsedStmt, err := p.parseExpr(0)
+			if err != nil {
+				return nil, err
+			}
+			return parsedStmt, nil
+		}
 	case utils.TOKEN_FUNCTION:
 	default:
 		parsedStmt, err := p.parseExpr(0)
@@ -82,7 +78,7 @@ func (p *Parser) Parse() (ast.Stmt, error) {
 		program.Body = append(program.Body, parsedStmt)
 		return program, nil
 	}
-	return nil, UnexpectedTokenError
+	return nil, utils.NewParseError("Unexpected token", string(p.currentToken().Type), float64(p.currentToken().Line), float64(p.currentToken().Column))
 
 }
 
@@ -113,22 +109,21 @@ func (p *Parser) peekToken() (*utils.Token, error) {
 
 func (p *Parser) parseVariableAssignment() (ast.Expr, error) {
 
-    name := string(p.currentToken().Literal)
+	name := string(p.currentToken().Literal)
 
-    if err := p.expectToken(utils.TOKEN_ASSIGN); err != nil {
-        return nil, err
-    }
+	if err := p.expectToken(utils.TOKEN_ASSIGN); err != nil {
+		return nil, err
+	}
 
-    p.nextToken()
+	p.nextToken()
 
-    right, err := p.parseExpr(0)
-    if err != nil {
-        return nil, err
-    }
+	right, err := p.parseExpr(0)
+	if err != nil {
+		return nil, err
+	}
 
-    return ast.NewVarAssign(name, &right), nil
+	return ast.NewVarAssign(name, &right), nil
 }
-
 
 func (p *Parser) parseVariableDeclaration(tokenType utils.TokenType) (ast.Expr, error) {
 
@@ -154,10 +149,9 @@ func (p *Parser) parseVariableDeclaration(tokenType utils.TokenType) (ast.Expr, 
 	lineEnded := checkLineEnded(p)
 	if lineEnded {
 		if tokenType == utils.TOKEN_LET {
-			fmt.Println("Line has ended, valid declaration with let")
 			return ast.NewVarDecl(name, vartype, nil), nil
 		} else {
-			return nil, UnexpectedTokenError
+			return nil, utils.NewParseError("Unexpected token", string(p.currentToken().Type), float64(p.currentToken().Line), float64(p.currentToken().Column))
 		}
 	}
 
@@ -169,17 +163,14 @@ func (p *Parser) parseVariableDeclaration(tokenType utils.TokenType) (ast.Expr, 
 
 	right, err := p.parseExpr(0)
 	if err != nil {
-		return nil, UnexpectedTokenError
+		return nil, utils.NewParseError("Unexpected token", string(p.currentToken().Type), float64(p.currentToken().Line), float64(p.currentToken().Column))
 	}
 
 	return ast.NewVarDecl(name, vartype, &right), nil
 }
 
 func checkLineEnded(p *Parser) bool {
-	// TODO change this to peek so we do not consume the token
 	currentToken, err := p.peekToken()
-	fmt.Printf("Checking if line has ended, current token %v\n", currentToken)
-
 	if err != nil {
 		return false
 	}
@@ -197,7 +188,6 @@ func (p *Parser) parseExpr(precedence int8) (ast.Expr, error) {
 
 	lhs, err := currentTokenRule.NUD(p, nil)
 	if err != nil {
-		fmt.Printf("No NUD was found for the token, %v", currentToken)
 		return nil, err
 	}
 
@@ -307,7 +297,6 @@ func init() {
 			LBP: 0,
 			NUD: func(p *Parser, name ast.Expr) (ast.Expr, error) {
 				varname := p.currentToken().Literal
-				fmt.Printf("Found varname %v \n", varname)
 				return ast.NewIdentifier(varname), nil
 			},
 		},
