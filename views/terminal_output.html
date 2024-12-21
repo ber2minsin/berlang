@@ -1,0 +1,6 @@
+<!-- views/terminal_output.html -->
+<div class="terminal-output">
+<span class="user-input">> {{.Command}}</span>
+{{if .Error}}<div class="terminal-error">{{.Error}}</div>
+{{else if .Output}}<div class="terminal-result">{{.Output}}</div>{{end}}
+</div>

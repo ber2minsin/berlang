@@ -1,59 +1,44 @@
 package main
 
 import (
-	"berlang/frontend/lexer"
-	"berlang/frontend/parser"
-	"berlang/runtime/interpreter"
-	"bufio"
-	"fmt"
+	"berlang/terminal"
 	"io"
-	"os"
-	"strings"
+	"text/template"
 
-	"github.com/davecgh/go-spew/spew"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
-func SpawnInteractiveShell(in io.Reader, out io.Writer) {
-    scanner := bufio.NewScanner(in)
-    fmt.Fprintln(out, "Interactive Berlang Shell - Press Ctrl+C to exit")
+type Templates struct {
+	templates *template.Template
+}
 
-    rt := interpreter.NewRuntime()
-    for {
-        fmt.Fprint(out, "> ")
-        if !scanner.Scan() {
-            break
-        }
+func (t *Templates) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+	return t.templates.ExecuteTemplate(w, name, data)
+}
 
-        line := strings.TrimSpace(scanner.Text())
-        if line == "" {
-            continue
-        }
-
-        lexer := lexer.NewLexer(strings.NewReader(line))
-
-        ts, err := lexer.Lex()
-        if err != nil {
-            fmt.Fprintln(out, "reading standard input:", err)
-        }
-
-        parser := parser.NewParser(ts)
-
-        result, err := parser.Parse()
-        if err != nil {
-            fmt.Fprintf(out, "ParsingError: %v", err)
-        }
-
-        rtresult, err := rt.Evaluate(result)
-        if err != nil {
-            fmt.Fprintf(out, "RuntimeError: %v\n", err)
-        }
-
-        spew.Fprintf(out, "Berlang returned result: %+v\n", rtresult)
-
-    }
-
+func newTemplate() *Templates {
+	return &Templates{
+		templates: template.Must(template.ParseGlob("views/*.html")),
+	}
 }
 
 func main() {
-    SpawnInteractiveShell(os.Stdin, os.Stdout)
+    e := echo.New()
+    e.Use(middleware.Logger())
+
+    terminal := terminal.NewTerminal()
+    e.Renderer = newTemplate()
+
+    e.GET("/", func(c echo.Context) error {
+        return c.Render(200, "index.html", nil)
+    })
+
+e.POST("/execute", func(c echo.Context) error {
+    command := c.FormValue("command")
+    result := terminal.ExecuteCommand(command)
+    return c.Render(200, "terminal_output.html", result)
+})
+
+    e.Logger.Fatal(e.Start(":3000"))
 }
