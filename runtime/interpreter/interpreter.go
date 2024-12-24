@@ -1,14 +1,11 @@
 package interpreter
 
-
 import (
 	"berlang/frontend/ast"
 	"berlang/runtime/environment"
 	"berlang/runtime/values"
 	"fmt"
 	"strconv"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 type Runtime struct {
@@ -27,10 +24,8 @@ func (r *Runtime) evalProgramType(p *ast.Program) (values.RtVal, error) {
 
 	for _, stmt := range p.Body {
 		var err error
-		spew.Printf("Looking at stmt %+v", stmt)
 		lastEvaluated, err = r.Evaluate(stmt)
 		if err != nil {
-
 			return nil, err
 		}
 	}
@@ -93,7 +88,6 @@ func (r *Runtime) evaluateNumeric(lhs, rhs values.RtVal, operator string) (value
 }
 
 func (r *Runtime) Evaluate(stmt ast.Stmt) (values.RtVal, error) {
-	spew.Printf("Requested to evaluate %+v\n", stmt)
 
 	switch stmt.GetKind() {
 	case ast.BinaryExprType:
