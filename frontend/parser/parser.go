@@ -43,45 +43,72 @@ func (p *Parser) nextToken() error {
 }
 
 func (p *Parser) Parse() (ast.Stmt, error) {
-
 	program := ast.NewProgram()
-	switch p.currentToken().Type {
-	case utils.TOKEN_LET, utils.TOKEN_CONST:
-		parsedVar, err := p.parseVariableDeclaration(p.currentToken().Type)
-		if err != nil {
-			return nil, err
-		}
-		return parsedVar, nil
-	case utils.TOKEN_IDENT:
-		if token, err := p.peekToken(); err == nil && token.Type == utils.TOKEN_ASSIGN {
-            // This is a variable assignment
-            // TODO check if the variable is a constant
-			parsedVar, err := p.parseVariableAssignment()
-			if err != nil {
-				return nil, err
-			}
-			return parsedVar, nil
-		} else {
-            // This is just an expression, not assigning a variable
-			parsedStmt, err := p.parseExpr(0)
-			if err != nil {
-				return nil, err
-			}
-			return parsedStmt, nil
-		}
-	case utils.TOKEN_FUNCTION:
-	default:
-		parsedStmt, err := p.parseExpr(0)
-		if err != nil {
-			return nil, err
-		}
-		program.Body = append(program.Body, parsedStmt)
-		return program, nil
-	}
-	return nil, utils.NewParseError("Unexpected token", string(p.currentToken().Type), float64(p.currentToken().Line), float64(p.currentToken().Column))
 
+	for p.tokenStack.Len() > 0 && p.currentToken().Type != utils.TOKEN_EOF {
+		stmt, err := p.parseStatement()
+		if err != nil {
+			return nil, err
+		}
+
+		if stmt != nil {
+			program.Body = append(program.Body, stmt)
+		}
+
+		// Skip any semicolons
+		for p.currentToken().Type == utils.TOKEN_SEMI {
+			if err := p.nextToken(); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return program, nil
 }
 
+func (p *Parser) parseStatement() (ast.Expr, error) {
+	switch p.currentToken().Type {
+	case utils.TOKEN_LET, utils.TOKEN_CONST:
+		stmt, err := p.parseVariableDeclaration(p.currentToken().Type)
+		if err != nil {
+			return nil, err
+		}
+		return stmt, nil
+
+	case utils.TOKEN_IDENT:
+		if token, err := p.peekToken(); err == nil && token.Type == utils.TOKEN_ASSIGN {
+			// Variable assignment
+			stmt, err := p.parseVariableAssignment()
+			if err != nil {
+				return nil, err
+			}
+			return stmt, nil
+		} else {
+			// Expression statement
+			stmt, err := p.parseExpr(0)
+			if err != nil {
+				return nil, err
+			}
+			return stmt, nil
+		}
+
+	case utils.TOKEN_FUNCTION:
+		// TODO: Implement function parsing
+		return nil, utils.NewParseError(
+			"Function parsing not implemented",
+			string(p.currentToken().Type),
+			float64(p.currentToken().Line),
+			float64(p.currentToken().Column),
+		)
+
+	default:
+		stmt, err := p.parseExpr(0)
+		if err != nil {
+			return nil, err
+		}
+		return stmt, nil
+	}
+}
 func (p *Parser) expectToken(expectedType utils.TokenType) error {
 	if err := p.nextToken(); err != nil {
 		return err
