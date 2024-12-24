@@ -23,7 +23,8 @@ func newTemplate() *Templates {
 	}
 }
 
-func main() {
+func startOnWeb() {
+
     e := echo.New()
     e.Use(middleware.Logger())
 
@@ -41,4 +42,8 @@ e.POST("/execute", func(c echo.Context) error {
 })
 
     e.Logger.Fatal(e.Start(":3000"))
+}
+
+func main() {
+
 }
