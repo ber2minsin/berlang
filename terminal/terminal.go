@@ -24,7 +24,7 @@ func NewTerminal() *Terminal {
 }
 
 type CommandResult struct {
-    Command string // Added field to store the command
+    Command string
     Output  string
     Error   string
 }
